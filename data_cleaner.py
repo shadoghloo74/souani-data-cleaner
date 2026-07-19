@@ -1,9 +1,12 @@
 import pandas as pd
 import os
 import logging
+import argparse
+import shutil
 from datetime import datetime
 from pathlib import Path
 
+# إعداد نظام الـ Logging القياسي
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
@@ -15,219 +18,199 @@ logging.basicConfig(
 
 class AdvancedDataCleaner:
     SUPPORTED_EXTENSIONS = [".csv", ".xlsx", ".xls", ".json"]
+    COMMON_NA_VALUES = ["", " ", "nan", "NaN", "none", "None", "null", "Null", "missing", "Missing", "N/A", "n/a", "NA", "-", "--"]
 
-    COMMON_NA_VALUES = [
-        "", " ", "nan", "NaN", "none", "None", "null", "Null",
-        "missing", "Missing", "N/A", "n/a", "NA", "-", "--"
-    ]
-
-    def __init__(self, file_path, numeric_strategy="median"):
-        """
-        numeric_strategy:
-        - 'zero'   : fill numeric missing values with 0
-        - 'mean'   : fill with column mean
-        - 'median' : fill with column median
-        - 'keep'   : keep missing values
-        """
-        self.file_path = Path(file_path)
-        self.df = None
-        self.file_ext = self.file_path.suffix.lower()
+    def __init__(self, numeric_strategy="median"):
         self.numeric_strategy = numeric_strategy
-        self.report = {
-            "input_file": str(self.file_path),
-            "started_at": datetime.now().astimezone().isoformat(),
-            "original_shape": None,
-            "final_shape": None,
-            "duplicates_removed": 0,
-            "columns_processed": [],
-            "warnings": []
-        }
+        self.backup_dir = Path("Backup")
+        self.backup_dir.mkdir(exist_ok=True)
+        self.last_backup = None
 
-    def validate_file(self):
-        if not self.file_path.exists():
-            logging.error(f"الملف غير موجود: {self.file_path}")
-            return False
+    def clean_filename(self, path: Path) -> Path:
+        """تنظيف وتوحيد أسماء الملفات استناداً للمقاييس"""
+        clean_name = path.name.replace(" ", "_")
+        clean_path = path.parent / clean_name
+        if path.exists() and path != clean_path:
+            os.rename(path, clean_path)
+            logging.info(f"تم تنظيف اسم الملف من '{path.name}' إلى '{clean_name}'")
+            return clean_path
+        return path
 
-        if self.file_ext not in self.SUPPORTED_EXTENSIONS:
-            logging.error(f"صيغة الملف غير مدعومة: {self.file_ext}")
-            return False
+    def create_backup(self, file_path: Path):
+        """إنشاء نسخة احتياطية في مجلد Backup قبل أي تعديل"""
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_file = self.backup_dir / f"{file_path.stem}_{timestamp}{file_path.suffix}"
+        shutil.copy(file_path, backup_file)
+        self.last_backup = (file_path, backup_file)
+        logging.info(f"تم إنشاء نسخة احتياطية للملف الأصلي في: {backup_file}")
 
-        return True
-
-    def load_data(self):
-        """تحميل البيانات من CSV / Excel / JSON"""
-        if not self.validate_file():
-            return False
-
-        try:
-            if self.file_ext == ".csv":
-                self.df = pd.read_csv(
-                    self.file_path,
-                    keep_default_na=True,
-                    na_values=self.COMMON_NA_VALUES,
-                    encoding="utf-8-sig"
-                )
-
-            elif self.file_ext in [".xlsx", ".xls"]:
-                self.df = pd.read_excel(
-                    self.file_path,
-                    keep_default_na=True,
-                    na_values=self.COMMON_NA_VALUES
-                )
-
-            elif self.file_ext == ".json":
-                self.df = pd.read_json(self.file_path)
-                self.df.replace(self.COMMON_NA_VALUES, pd.NA, inplace=True)
-
-            self.report["original_shape"] = self.df.shape
-            logging.info(f"تم تحميل الملف بنجاح. الحجم: {self.df.shape}")
+    def undo_last_operation(self):
+        """إمكانية استعادة الملف الأصلي (Undo / Restore)"""
+        if self.last_backup and self.last_backup[1].exists():
+            original, backup = self.last_backup
+            shutil.copy(backup, original)
+            logging.info(f"تمت استعادة الملف الأصلي بنجاح من النسخة الاحتياطية: {original}")
             return True
-
-        except UnicodeDecodeError:
-            try:
-                self.df = pd.read_csv(
-                    self.file_path,
-                    keep_default_na=True,
-                    na_values=self.COMMON_NA_VALUES,
-                    encoding="latin1"
-                )
-                self.report["original_shape"] = self.df.shape
-                logging.warning("تم استخدام ترميز latin1 بسبب فشل utf-8.")
-                return True
-            except Exception as e:
-                logging.error(f"فشل تحميل CSV بترميز بديل: {e}")
-                return False
-
-        except Exception as e:
-            logging.error(f"فشل تحميل الملف: {e}")
-            return False
-
-    def clean_column_names(self):
-        """توحيد أسماء الأعمدة"""
-        original_columns = list(self.df.columns)
-
-        self.df.columns = (
-            self.df.columns
-            .astype(str)
-            .str.strip()
-            .str.replace(r"\s+", "_", regex=True)
-            .str.replace(r"[^\w_]", "", regex=True)
-        )
-
-        if list(self.df.columns) != original_columns:
-            logging.info("تم تنظيف وتوحيد أسماء الأعمدة.")
-
-    def remove_duplicates(self):
-        initial_rows = len(self.df)
-        self.df.drop_duplicates(inplace=True)
-        removed = initial_rows - len(self.df)
-
-        self.report["duplicates_removed"] = removed
-        if removed:
-            logging.info(f"تم حذف {removed} صف مكرر.")
-
-    def is_date_column(self, col):
-        name = col.lower()
-        return any(keyword in name for keyword in ["date", "time", "created", "updated", "deadline"])
-
-    def clean_dates(self, col):
-        before_missing = self.df[col].isna().sum()
-        converted = pd.to_datetime(self.df[col], errors="coerce")
-        after_missing = converted.isna().sum()
-
-        if after_missing <= before_missing + max(1, int(len(self.df) * 0.3)):
-            self.df[col] = converted.dt.strftime("%Y-%m-%d")
-            logging.info(f"تم توحيد التاريخ في العمود: {col}")
-            return True
-
+        logging.warning("لا توجد عمليات سابقة متاحة للاستعادة.")
         return False
 
-    def clean_text_column(self, col):
-        self.df[col] = self.df[col].where(self.df[col].notna(), pd.NA)
-        self.df[col] = self.df[col].astype("string").str.strip()
-        self.df[col] = self.df[col].replace(
-            ["nan", "None", "<NA>", "N/A", ""],
-            pd.NA
-        )
-        self.df[col] = self.df[col].fillna("N/A")
+    def generate_html_report(self, report_data):
+        """إنشاء تقرير HTML احترافي (Cleaning_Report.html)"""
+        html_content = f"""
+        <!DOCTYPE html>
+        <html lang="ar" dir="rtl">
+        <head>
+            <meta charset="UTF-8">
+            <title>تقرير تنظيف البيانات القياسي</title>
+            <style>
+                body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; color: #333; padding: 20px; }}
+                .container {{ max-width: 900px; background: white; margin: auto; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }}
+                h1 {{ color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; }}
+                .meta {{ font-size: 0.9em; color: #7f8c8d; margin-bottom: 20px; }}
+                table {{ width: 100%; border-collapse: collapse; margin-top: 20px; background: #fff; }}
+                th, td {{ border: 1px solid #ddd; padding: 12px; text-align: right; }}
+                th {{ background-color: #3498db; color: white; }}
+                tr:nth-child(even) {{ background-color: #f9f9f9; }}
+                .badge {{ background: #2ecc71; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.85em; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>📊 تقرير تنظيف البيانات - Souani Data Cleaner</h1>
+                <div class="meta">
+                    <p><strong>اسم الملف المعالج:</strong> {report_data['file_name']}</p>
+                    <p><strong>وقت التنفيذ الكامل:</strong> {report_data['exec_time']}</p>
+                </div>
+                <h2>📈 الملخص الإحصائي لكل ورقة (Sheet)</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>اسم الورقة / الملف</th>
+                            <th>عدد الصفوف</th>
+                            <th>عدد الأعمدة</th>
+                            <th>التكرارات المحذوفة</th>
+                            <th>إجمالي القيم الفارغة المعالجة</th>
+                            <th>نوع الاستراتيجية الرقمية</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        """
+        for sheet_name, metrics in report_data['sheets'].items():
+            html_content += f"""
+                        <tr>
+                            <td>{sheet_name}</td>
+                            <td>{metrics['rows']}</td>
+                            <td>{metrics['cols']}</td>
+                            <td><span class="badge">{metrics['dup_removed']}</span></td>
+                            <td>{metrics['nulls_filled']}</td>
+                            <td>{self.numeric_strategy}</td>
+                        </tr>
+            """
+        
+        html_content += """
+                    </tbody>
+                </table>
+            </div>
+        </body>
+        </html>
+        """
+        with open("Cleaning_Report.html", "w", encoding="utf-8") as f:
+            f.write(html_content)
+        logging.info("تم تصدير تقرير HTML الاحترافي بنجاح باسم 'Cleaning_Report.html'")
 
-    def clean_numeric_column(self, col):
-        self.df[col] = pd.to_numeric(self.df[col], errors="coerce")
+    def process_dataframe(self, df: pd.DataFrame) -> tuple:
+        """تنظيف ورقة بيانات واحدة وإرجاع المقاييس والـ DF المنظف"""
+        metrics = {"rows": df.shape[0], "cols": df.shape[1], "dup_removed": 0, "nulls_filled": 0}
+        
+        # 1. إزالة التكرارات
+        initial_rows = len(df)
+        df.drop_duplicates(inplace=True)
+        metrics["dup_removed"] = initial_rows - len(df)
 
-        if self.numeric_strategy == "zero":
-            self.df[col] = self.df[col].fillna(0)
+        # 2. تنظيف الأعمدة
+        for col in df.columns:
+            metrics["nulls_filled"] += int(df[col].isna().sum())
+            if df[col].dtype == 'object' or str(df[col].dtype).startswith('str'):
+                df[col] = df[col].astype(str).str.strip().replace(["nan", "None", "<NA>", "N/A", ""], pd.NA).fillna("N/A")
+            elif 'date' in str(col).lower() or 'time' in str(col).lower():
+                try:
+                    df[col] = pd.to_datetime(df[col], errors='coerce').dt.strftime("%Y-%m-%d")
+                except Exception: pass
+            else:
+                if self.numeric_strategy == "zero": df[col] = df[col].fillna(0)
+                elif self.numeric_strategy == "mean": df[col] = df[col].fillna(df[col].mean())
+                elif self.numeric_strategy == "median": df[col] = df[col].fillna(df[col].median())
 
-        elif self.numeric_strategy == "mean":
-            self.df[col] = self.df[col].fillna(self.df[col].mean())
+        return df, metrics
 
-        elif self.numeric_strategy == "median":
-            self.df[col] = self.df[col].fillna(self.df[col].median())
-
-        elif self.numeric_strategy == "keep":
-            pass
-
-        else:
-            logging.warning(f"استراتيجية رقمية غير معروفة، تم ترك القيم كما هي: {self.numeric_strategy}")
-
-    def clean_data(self):
-        if self.df is None:
-            logging.warning("لا توجد بيانات لتنظيفها.")
-            return False
-
-        self.clean_column_names()
-        self.remove_duplicates()
-
-        for col in self.df.columns:
-            processed_as = None
-
-            if self.is_date_column(col):
-                if self.clean_dates(col):
-                    processed_as = "date"
-
-            if processed_as is None:
-                if pd.api.types.is_numeric_dtype(self.df[col]):
-                    self.clean_numeric_column(col)
-                    processed_as = "numeric"
-                else:
-                    self.clean_text_column(col)
-                    processed_as = "text"
-
-            self.report["columns_processed"].append({
-                "column": col,
-                "type": processed_as,
-                "missing_after": int(self.df[col].isna().sum())
-            })
-
-        self.report["final_shape"] = self.df.shape
-        self.report["finished_at"] = datetime.now().astimezone().isoformat()
-        logging.info("تم تنظيف البيانات بنجاح.")
-        return True
-
-    def save_cleaned_data(self):
-        if self.df is None:
+    def clean_single_file(self, file_path: Path) -> dict:
+        """تنظيف ملف فردي مع دعم تعدد الـ Sheets لملفات الإكسل"""
+        file_path = self.clean_filename(file_path)
+        if file_path.suffix.lower() not in self.SUPPORTED_EXTENSIONS:
             return None
 
-        base_path = self.file_path.with_suffix("")
-        
-        if self.file_ext == ".csv":
-            output_path = f"{base_path}_standardized.csv"
-            self.df.to_csv(output_path, index=False, encoding="utf-8-sig")
+        self.create_backup(file_path)
+        file_ext = file_path.suffix.lower()
+        output_path = file_path.parent / f"{file_path.stem}_standardized{file_ext}"
+        file_report = {"file_name": file_path.name, "exec_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "sheets": {}}
 
-        elif self.file_ext in [".xlsx", ".xls"]:
-            output_path = f"{base_path}_standardized.xlsx"
-            self.df.to_excel(output_path, index=False)
+        try:
+            if file_ext in [".xlsx", ".xls"]:
+                excel_file = pd.ExcelFile(file_path)
+                with pd.ExcelWriter(output_path) as writer:
+                    for sheet_name in excel_file.sheet_names:
+                        df = pd.read_excel(file_path, sheet_name=sheet_name, na_values=self.COMMON_NA_VALUES)
+                        cleaned_df, metrics = self.process_dataframe(df)
+                        cleaned_df.to_excel(writer, sheet_name=sheet_name, index=False)
+                        file_report["sheets"][sheet_name] = metrics
+            else:
+                if file_ext == ".csv":
+                    df = pd.read_csv(file_path, na_values=self.COMMON_NA_VALUES, encoding="utf-8-sig")
+                elif file_ext == ".json":
+                    df = pd.read_json(file_path)
+                    df.replace(self.COMMON_NA_VALUES, pd.NA, inplace=True)
+                
+                cleaned_df, metrics = self.process_dataframe(df)
+                if file_ext == ".csv": cleaned_df.to_csv(output_path, index=False, encoding="utf-8-sig")
+                elif file_ext == ".json": cleaned_df.to_json(output_path, orient='records', indent=4, force_ascii=False)
+                file_report["sheets"]["الرئيسية"] = metrics
 
-        elif self.file_ext == ".json":
-            output_path = f"{base_path}_standardized.json"
-            self.df.to_json(output_path, orient="records", indent=4, force_ascii=False)
+            logging.info(f"تم حفظ الملف المُنظف بنجاح في: {output_path}")
+            return file_report
+        except Exception as e:
+            logging.error(f"خطأ أثناء معالجة الملف {file_path.name}: {e}")
+            return None
 
-        logging.info(f"تم حفظ الملف المنظف في: {output_path}")
-        return output_path
+    def clean_target(self, target_path: str):
+        """دعم معالجة ملف واحد أو مجلد كامل يحتوي على ملفات متعددة"""
+        path = Path(target_path)
+        if not path.exists():
+            logging.error(f"المسار المحدد غير موجود: {target_path}")
+            return
+
+        aggregated_report = {"file_name": path.name, "exec_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "sheets": {}}
+
+        if path.is_dir():
+            logging.info(f"بدء تنظيف مجلد كامل يحتوي على ملفات متعددة: {path.name}")
+            for item in path.iterdir():
+                if item.is_file() and item.suffix.lower() in self.SUPPORTED_EXTENSIONS and "standardized" not in item.name:
+                    res = self.clean_single_file(item)
+                    if res:
+                        for sheet_key, metrics in res["sheets"].items():
+                            aggregated_report["sheets"][f"{item.name} -> {sheet_key}"] = metrics
+        else:
+            res = self.clean_single_file(path)
+            if res: aggregated_report = res
+
+        if aggregated_report["sheets"]:
+            self.generate_html_report(aggregated_report)
 
 
 if __name__ == "__main__":
-    cleaner = AdvancedDataCleaner("data.csv", numeric_strategy="median")
+    parser = argparse.ArgumentParser(description="Souani Data Cleaner Engine (PRD-PDS-0001)")
+    parser.add_argument("target", help="مسار الملف الفردي أو المجلد الكامل لتنظيفه")
+    parser.add_argument("--strategy", choices=["zero", "mean", "median", "keep"], default="median", help="استراتيجية تنظيف الأرقام المفقودة")
+    args = parser.parse_args()
 
-    if cleaner.load_data():
-        if cleaner.clean_data():
-            cleaner.save_cleaned_data()
+    cleaner = AdvancedDataCleaner(numeric_strategy=args.strategy)
+    cleaner.clean_target(args.target)
