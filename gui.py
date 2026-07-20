@@ -3,7 +3,6 @@ from tkinter import filedialog, messagebox
 import threading
 import pandas as pd
 from pathlib import Path
-# استدعاء المحرك المطور v3.3 الذي شاركته
 from data_cleaner import AdvancedDataCleaner
 
 ctk.set_appearance_mode("System")
@@ -18,7 +17,6 @@ class SouaniCleanerGUI(ctk.CTk):
         self.resizable(False, False)
 
         self.selected_path = None
-        # تهيئة المحرك بالقيم الافتراضية للمعاينة
         self.cleaner = AdvancedDataCleaner()
 
         self.title_label = ctk.CTkLabel(
@@ -36,9 +34,9 @@ class SouaniCleanerGUI(ctk.CTk):
             placeholder_text="اختر ملفاً لبدء التحليل الذكي والتنظيف...",
             justify="right", 
             font=ctk.CTkFont(family="Segoe UI", size=13),
-            corner_radius=10,      # حواف دائرية متناسقة
-            border_width=1,         # سمك حد رفيع وأنيق
-            fg_color="#fcfcfc"      # خلفية مريحة للعين
+            corner_radius=10,
+            border_width=1,
+            fg_color="#fcfcfc"
         )
         self.path_entry.pack(side="right", padx=10, pady=15, expand=True, fill="x")
 
@@ -145,7 +143,6 @@ class SouaniCleanerGUI(ctk.CTk):
             else:
                 raise ValueError("صيغة الملف غير مدعومة للمعاينة السريعة.")
 
-            # استخدام الدالة من الكود الجديد الذي أرسلته
             suggestions = self.cleaner.generate_ai_suggestions(df)
             self.after(0, lambda: self.show_ai_suggestions(suggestions))
         except Exception as e:
@@ -172,7 +169,6 @@ class SouaniCleanerGUI(ctk.CTk):
 
     def run_cleaner_engine(self):
         try:
-            # ربط المتغيرات بالخيارات المحددة من القوائم المنسدلة للواجهة
             engine = AdvancedDataCleaner(
                 numeric_strategy=self.strategy_var.get(),
                 outlier_strategy=self.outlier_var.get(),
@@ -186,12 +182,12 @@ class SouaniCleanerGUI(ctk.CTk):
 
     def cleaning_success(self, cleaned_files):
         self.clean_btn.configure(state="normal", text="▶ بدء تنظيف وتطهير البيانات القياسي")
-        self.status_label.configure(text="🎉 اكتمل التطهير القياسي الشامل وتوليد الـ Dashboard!", text_color="#2ecc71")
+        self.status_label.configure(text="🎉 إكتمل التطهير وتوليد لوحة تحكم النصوص العربية!", text_color="#2ecc71")
         
         file_list_str = "\n".join([f"- {Path(f).name}" for f in cleaned_files])
         messagebox.showinfo(
             "اكتملت المعالجة بنجاح v3.3", 
-            f"تم تنظيف كافة صفحات الملف بنجاح وتصدير النسخة الموحدة:\n\n{file_list_str}\n\n📄 اذهب إلى مجلد Reports/ لفتح تقرير الـ HTML التفاعلي المطور!"
+            f"تم تنظيف كافة صفحات الملف وتطهير النصوص العربية بنجاح:\n\n{file_list_str}\n\n📄 توجه لمجلد Reports/ لمشاهدة التقرير التفاعلي المحسن!"
         )
 
     def cleaning_failed(self, err_msg):
