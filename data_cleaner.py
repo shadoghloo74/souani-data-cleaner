@@ -1,211 +1,236 @@
+import os
+import json
 import pandas as pd
 import numpy as np
 from pathlib import Path
-import os
-import shutil
+from datetime import datetime
+import plotly.graph_objects as go
+import plotly.io as pio
 
 class AdvancedDataCleaner:
-    def __init__(self, numeric_strategy="median"):
+    COMMON_NA_VALUES = ["n/a", "na", "--", "-", "null", "none", "missing", "?", "nan", " ", ""]
+
+    def __init__(self, numeric_strategy="median", outlier_strategy="keep", backup=True, overwrite=False):
         self.numeric_strategy = numeric_strategy
-        self.backup_dir = Path("Backup")
-        self.backup_dir.mkdir(exist_ok=True)
-        self.last_backup = None
-        self.last_target_path = None
+        self.outlier_strategy = outlier_strategy
+        self.backup = backup
+        self.overwrite = overwrite
 
     def generate_ai_suggestions(self, df):
-        """
-        تحليل ذكي Rule-Based لتقديم اقتراحات جودة البيانات المحسّنة وآمنة تماماً.
-        """
         suggestions = []
-
-        if df is None or df.empty:
-            return ["⚠️ لا توجد بيانات كافية لتحليل الجودة."]
-
         total_rows = len(df)
-        total_cols = len(df.columns)
+        
+        if total_rows == 0:
+            return ["⚠️ ملف البيانات فارغ تماماً، لا يوجد شيء لتحليله."]
 
-        suggestions.append(f"📊 تم تحليل ملف يحتوي على {total_rows} صف و {total_cols} عمود.")
+        missing_counts = df.isna().sum()
+        total_missing = missing_counts.sum()
+        if total_missing > 0:
+            suggestions.append(f"🔍 عثرنا على {total_missing} قيمة مفقودة إجمالاً عبر الأعمدة.")
+            for col, count in missing_counts.items():
+                if count > 0:
+                    pct = (count / total_rows) * 100
+                    suggestions.append(f"  • العمود '{col}' يحتوي على {count} فراغ ({pct:.1f}%).")
+        else:
+            suggestions.append("✅ ممتاز! لا توجد أي قيم مفقودة في هذا الملف.")
 
-        # 1. فحص القيم المفقودة
-        missing_counts = df.isnull().sum()
-        missing_percentages = df.isnull().mean() * 100
+        dup_count = df.duplicated().sum()
+        if dup_count > 0:
+            suggestions.append(f"🗑️ تم رصد {dup_count} سطر مكرر بالكامل. نقترح تصفيتها فوراً.")
 
-        for col in df.columns:
-            missing_count = int(missing_counts[col])
-            pct = float(missing_percentages[col])
-
-            if pct >= 80:
-                suggestions.append(
-                    f"🚨 العمود '{col}' يحتوي على {pct:.1f}% قيم مفقودة ({missing_count} قيمة). قد يكون من الأفضل حذفه."
-                )
-            elif pct >= 50:
-                suggestions.append(
-                    f"⚠️ العمود '{col}' يحتوي على {pct:.1f}% قيم مفقودة. راجعه قبل الاعتماد عليه في التحليل."
-                )
-            elif pct > 0:
-                suggestions.append(
-                    f"💡 العمود '{col}' يحتوي على {pct:.1f}% قيم فارغة ({missing_count} قيمة). سيتم التعامل معها حسب استراتيجية التنظيف."
-                )
-
-        # 2. فحص التكرارات
-        duplicate_count = int(df.duplicated().sum())
-        if duplicate_count > 0:
-            suggestions.append(
-                f"👥 يوجد {duplicate_count} صف مكرر بالكامل. إزالتها ستساعد على تحسين دقة التحليل."
-            )
-
-        # 3. فحص القيم الشاذة للأعمدة الرقمية
-        numeric_cols = df.select_dtypes(include=["number"]).columns
-
-        for col in numeric_cols:
-            series = df[col].dropna()
-
-            if len(series) < 10:
-                continue
-
-            q1 = series.quantile(0.25)
-            q3 = series.quantile(0.75)
+        num_cols = df.select_dtypes(include=[np.number]).columns
+        outlier_found = False
+        for col in num_cols:
+            q1 = df[col].quantile(0.25)
+            q3 = df[col].quantile(0.75)
             iqr = q3 - q1
-
-            if iqr == 0:
-                continue
-
             lower_bound = q1 - 1.5 * iqr
             upper_bound = q3 + 1.5 * iqr
-
-            outlier_count = int(((series < lower_bound) | (series > upper_bound)).sum())
-
-            if outlier_count > 0:
-                pct = (outlier_count / len(series)) * 100
-                suggestions.append(
-                    f"🚨 العمود الرقمي '{col}' يحتوي على {outlier_count} قيمة شاذة ({pct:.1f}%). راجعها قبل التحليل المالي أو الإحصائي."
-                )
-
-        # 4. فحص الأعمدة النصية ذات القيم المتنوعة جدًا
-        text_cols = df.select_dtypes(include=["object", "string"]).columns
-
-        for col in text_cols:
-            unique_count = df[col].nunique(dropna=True)
-
-            if total_rows > 0:
-                unique_ratio = unique_count / total_rows
-
-                if unique_ratio > 0.9 and total_rows >= 20:
-                    suggestions.append(
-                        f"🔎 العمود النصي '{col}' يحتوي على قيم فريدة كثيرة جدًا. قد يكون معرفًا ID أو بيانات تحتاج مراجعة."
-                    )
-
-        if len(suggestions) == 1:
-            suggestions.append("✨ تهانينا! البيانات تبدو نظيفة جدًا ولا توجد ملاحظات حرجة.")
+            outliers = df[(df[col] < lower_bound) | (df[col] > upper_bound)]
+            if len(outliers) > 0:
+                if not outlier_found:
+                    suggestions.append("📈 تحليل القيم الشاذة (Outliers):")
+                    outlier_found = True
+                suggestions.append(f"  • العمود الرقمي '{col}' يحتوي على {len(outliers)} قيمة متطرفة خارج الحدود الطبيعية.")
 
         return suggestions
 
-    def create_backup(self, file_path):
-        """توليد نسخة احتياطية مشفرة زمنياً للملف الأصلي"""
-        path = Path(file_path)
-        if path.is_file():
-            timestamp = pd.Timestamp.now().strftime("%Y%m%d_%H%M%S")
-            backup_name = f"data_{timestamp}.csv"
-            backup_path = self.backup_dir / backup_name
-            shutil.copy(path, backup_path)
-            self.last_backup = backup_path
-            self.last_target_path = path
-
-    def clean_target(self, target_path):
-        path = Path(target_path)
-        if path.is_file():
-            self.create_backup(path)
-            
-            # قراءة البيانات حسب النوع
-            if path.suffix == '.csv':
-                df = pd.read_csv(path)
-            elif path.suffix in ['.xlsx', '.xls']:
-                df = pd.read_excel(path)
-            elif path.suffix == '.json':
-                df = pd.read_json(path)
-            else:
-                raise ValueError("امتداد الملف غير مدعوم حالياً!")
-
-            # الفحص وتوليد اقتراحات الـ AI قبل البدء بالتنظيف الفعلي
-            ai_suggestions = self.generate_ai_suggestions(df.copy())
-
-            # عمليات التنظيف والمعالجة الأساسية
-            # 1. إزالة التكرارات
-            df.drop_duplicates(inplace=True)
-
-            # 2. ملء القيم الفارغة في الأعمدة الرقمية حسب الاستراتيجية المختارة
-            numeric_cols = df.select_dtypes(include=['number']).columns
-            for col in numeric_cols:
-                if df[col].isnull().any():
-                    if self.numeric_strategy == "median":
-                        df[col].fillna(df[col].median(), inplace=True)
-                    elif self.numeric_strategy == "mean":
-                        df[col].fillna(df[col].mean(), inplace=True)
-                    elif self.numeric_strategy == "zero":
-                        df[col].fillna(0, inplace=True)
-
-            # حفظ الملف النظيف مكانه
-            if path.suffix == '.csv':
-                df.to_csv(path, index=False)
-            elif path.suffix in ['.xlsx', '.xls']:
-                df.to_excel(path, index=False)
-            elif path.suffix == '.json':
-                df.to_json(path, orient='records', indent=4)
-
-            # توليد تقرير HTML يتضمن اقتراحات الـ AI
-            self.generate_html_report(path.name, ai_suggestions)
-            
-        elif path.is_dir():
-            for sub_file in path.glob("*.*"):
-                if sub_file.suffix in ['.csv', '.xlsx', '.xls', '.json']:
-                    self.clean_target(sub_file)
-
-    def generate_html_report(self, filename, ai_suggestions):
-        """توليد تقرير HTML متكامل واحترافي مدعوم بـ AI"""
-        suggestions_html = "".join([f"<li>{sug}</li>" for sug in ai_suggestions])
+    def clean_target(self, path_str):
+        path = Path(path_str)
+        cleaned_paths = []
         
-        report_content = f"""
-        <!DOCTYPE html>
-        <html lang="ar" dir="rtl">
-        <head>
-            <meta charset="UTF-8">
-            <title>تقرير تطهير جودة البيانات الذكي</title>
-            <style>
-                body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f6fa; color: #333; margin: 30px; }}
-                .container {{ max-width: 800px; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin: auto; }}
-                h1 {{ color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; }}
-                .meta {{ font-size: 14px; color: #7f8c8d; margin-bottom: 20px; }}
-                .ai-box {{ background-color: #ebf5fb; border-right: 5px solid #3498db; padding: 15px; border-radius: 6px; margin-bottom: 20px; }}
-                .ai-box h3 {{ margin-top: 0; color: #2980b9; }}
-                ul {{ padding-right: 20px; line-height: 1.8; }}
-                li {{ margin-bottom: 8px; }}
-                .footer {{ margin-top: 30px; text-align: center; font-size: 12px; color: #95a5a6; }}
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <h1>📊 تقرير جودة وتطهير البيانات الذكي</h1>
-                <div class="meta">الملف المعالج: <strong>{filename}</strong> | تاريخ المعالجة: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}</div>
-                
-                <div class="ai-box">
-                    <h3>🧠 التقرير الإحصائي واقتراحات الذكاء الاصطناعي (AI):</h3>
-                    <ul>
-                        {suggestions_html}
-                    </ul>
-                </div>
-                
-                <p>✅ تم تطبيق قواعد التنظيف الآلي، تحديث الفراغات الرقمية بنجاح، وتأمين وحذف الملفات المكررة بالكامل.</p>
-                <div class="footer">Souani Data Cleaner v3.0 (PRD-PDS-0001) - جميع الحقوق محفوظة لشركتك الناشئة.</div>
-            </div>
-        </body>
-        </html>
-        """
-        with open("Cleaning_Report.html", "w", encoding="utf-8") as f:
-            f.write(report_content)
+        if path.is_file():
+            cleaned_file = self._clean_single_file(path)
+            if cleaned_file:
+                cleaned_paths.append(str(cleaned_file))
+        else:
+            raise ValueError("المسار المحدد ليس ملفاً صالحاً.")
+            
+        return cleaned_paths
 
-    def undo_last_operation(self):
-        """التراجع الفوري واستعادة الملف الأصلي"""
-        if self.last_backup and self.last_backup.is_file() and self.last_target_path:
-            shutil.copy(self.last_backup, self.last_target_path)
-            return True
-        return False
+    def _clean_single_file(self, path):
+        suffix = path.suffix.lower()
+        
+        if suffix == ".csv":
+            df = pd.read_csv(path, na_values=self.COMMON_NA_VALUES, keep_default_na=True)
+        elif suffix in [".xlsx", ".xls"]:
+            df = pd.read_excel(path, na_values=self.COMMON_NA_VALUES, keep_default_na=True)
+        elif suffix == ".json":
+            df = pd.read_json(path)
+            df.replace(self.COMMON_NA_VALUES, pd.NA, inplace=True)
+        else:
+            return None
+
+        initial_rows = len(df)
+        initial_missing = int(df.isna().sum().sum())
+        
+        # 1. إزالة التكرارات
+        df.drop_duplicates(inplace=True)
+        rows_after_dups = len(df)
+        dups_removed = initial_rows - rows_after_dups
+
+        # 2. معالجة القيم المفقودة الرقمية
+        num_cols = df.select_dtypes(include=[np.number]).columns
+        for col in num_cols:
+            if df[col].isna().sum() > 0:
+                if self.numeric_strategy == "median":
+                    df[col] = df[col].fillna(df[col].median())
+                elif self.numeric_strategy == "mean":
+                    df[col] = df[col].fillna(df[col].mean())
+                elif self.numeric_strategy == "zero":
+                    df[col] = df[col].fillna(0)
+
+        # 3. معالجة القيم المفقودة النصية
+        obj_cols = df.select_dtypes(include=["object"]).columns
+        for col in obj_cols:
+            df[col] = df[col].fillna("Unknown")
+
+        # 4. معالجة وحساب القيم الشاذة المتأثرة بالفحص
+        outliers_detected = 0
+        for col in num_cols:
+            q1 = df[col].quantile(0.25)
+            q3 = df[col].quantile(0.75)
+            iqr = q3 - q1
+            lower_bound = q1 - 1.5 * iqr
+            upper_bound = q3 + 1.5 * iqr
+            
+            mask = (df[col] < lower_bound) | (df[col] > upper_bound)
+            outliers_detected += int(mask.sum())
+            
+            if self.outlier_strategy == "cap":
+                df[col] = np.clip(df[col], lower_bound, upper_bound)
+            elif self.outlier_strategy == "remove":
+                df = df[(df[col] >= lower_bound) & (df[col] <= upper_bound)]
+
+        final_rows = len(df)
+        final_missing = int(df.isna().sum().sum())
+
+        out_dir = path.parent
+        out_name = f"{path.stem}_standardized{path.suffix}"
+        out_path = out_dir / out_name
+        
+        if suffix == ".csv":
+            df.to_csv(out_path, index=False)
+        elif suffix in [".xlsx", ".xls"]:
+            df.to_excel(out_path, index=False)
+        elif suffix == ".json":
+            df.to_json(out_path, orient="records", indent=4)
+
+        # توليد لوحة التحكم التفاعلية
+        self._generate_interactive_dashboard(
+            path.name, initial_rows, final_rows, dups_removed, 
+            initial_missing, final_missing, outliers_detected
+        )
+        
+        return out_path
+
+    def _generate_interactive_dashboard(self, filename, initial_rows, final_rows, dups, init_missing, final_missing, outliers):
+        os.makedirs("Reports", exist_ok=True)
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        report_stem = Path(filename).stem
+
+        # 1. رسم بياني تفاعلي لمقارنة حجم الصفوف والقيم المفقودة (قبل وبعد)
+        fig = go.Figure()
+        fig.add_trace(go.Bar(
+            x=['عدد الصفوف', 'القيم المفقودة'],
+            y=[initial_rows, init_missing],
+            name='قبل التنظيف 🛑',
+            marker_color='#e74c3c'
+        ))
+        fig.add_trace(go.Bar(
+            x=['عدد الصفوف', 'القيم المفقودة'],
+            y=[final_rows, final_missing],
+            name='بعد التنظيف القياسي  🟢',
+            marker_color='#2ecc71'
+        ))
+        
+        fig.update_layout(
+            title=f'مقارنة كفاءة تنظيف البيانات لملف: {filename}',
+            barmode='group',
+            template='plotly_white',
+            font=dict(family="Segoe UI", size=14),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+        )
+
+        # تحويل الرسم البياني التفاعلي إلى كود HTML مستقل
+        plotly_html = pio.to_html(fig, full_html=False, include_plotlyjs='cdn')
+
+        # 2. بناء هيكل الـ HTML الكامل مدمجاً بـ لوحة التحكم التفاعلية
+        dashboard_html = f"""<!DOCTYPE html>
+<html lang='ar' dir='rtl'>
+<head>
+<meta charset='UTF-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0'>
+<title>Souani Interactive Dashboard v3.2</title>
+<style>
+  body {{ font-family: 'Segoe UI', Tahoma, sans-serif; margin:0; background:#f4f7fb; color:#172033; }}
+  header {{ background:linear-gradient(135deg,#0b2545,#0066cc); color:white; padding:25px; text-align:center; }}
+  header h1 {{ margin:0; font-size:28px; }}
+  main {{ max-width:1100px; margin:24px auto; padding:0 20px; }}
+  .grid {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:15px; margin-bottom:25px; }}
+  .card {{ background:white; border-radius:12px; padding:20px; box-shadow:0 6px 15px rgba(0,0,0,.05); border:1px solid #e4ebf3; text-align:center; }}
+  .card span {{ color:#617086; font-size:14px; font-weight:bold; }}
+  .card b {{ display:block; font-size:32px; color:#0b66c3; margin-top:8px; }}
+  .chart-container {{ background:white; border-radius:16px; padding:20px; box-shadow:0 8px 22px rgba(0,0,0,.06); border:1px solid #e4ebf3; margin-bottom:30px; }}
+  footer {{ text-align:center; color:#748399; padding:20px; font-size:12px; }}
+</style>
+</head>
+<body>
+<header>
+  <h1>📊 Souani Data Cleaner — لوحة التحكم التفاعلية</h1>
+  <p>تم التوليد الذكي للتقرير في: {timestamp}</p>
+</header>
+<main>
+  <!-- ملخص البطاقات السريعة -->
+  <div class='grid'>
+    <div class='card'><span>الأسطر المحذوفة (تكرار)</span><b>{dups}</b></div>
+    <div class='card'><span>القيم الشاذة المكتشفة</span><b>{outliers}</b></div>
+    <div class='card'><span>حالة الفراغات الرقمية</span><b>{self.numeric_strategy}</b></div>
+    <div class='card'><span>إستراتيجية المتطرفات</span><b>{self.outlier_strategy}</b></div>
+  </div>
+
+  <!-- الرسم البياني التفاعلي من Plotly -->
+  <div class='chart-container'>
+    {plotly_html}
+  </div>
+</main>
+<footer>Souani Data Cleaner v3.2 — لوحة تفاعلية مدعومة بـ Plotly</footer>
+</body>
+</html>"""
+
+        # حفظ التقرير التفاعلي النهائي
+        report_path = f"Reports/Dashboard_{report_stem}.html"
+        with open(report_path, "w", encoding="utf-8") as f:
+            f.write(dashboard_html)
+            
+        # حفظ نسخة الـ JSON التوثيقية كالعادة
+        report_data = {
+            "file_processed": filename,
+            "timestamp": timestamp,
+            "initial_rows": initial_rows,
+            "final_rows": final_rows,
+            "duplicates_removed": dups,
+            "outliers_detected": outliers
+        }
+        with open(f"Reports/report_{report_stem}.json", "w", encoding="utf-8") as f:
+            json.dump(report_data, f, indent=4, ensure_ascii=False)
