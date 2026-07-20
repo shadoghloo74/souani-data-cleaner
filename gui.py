@@ -13,7 +13,7 @@ class SouaniCleanerGUI(ctk.CTk):
         super().__init__()
 
         self.title("Souani Data Cleaner v3.3 (Professional Edition)")
-        self.geometry("750x720")
+        self.geometry("750x740")
         self.resizable(False, False)
 
         self.selected_path = None
@@ -105,14 +105,25 @@ class SouaniCleanerGUI(ctk.CTk):
         )
         self.status_label.pack(pady=5)
 
-        # زر بدء التنظيف
+        # --- أزرار المعالجة والتنظيف التلقائي ---
+        self.buttons_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.buttons_frame.pack(pady=10, padx=40, fill="x")
+
         self.clean_btn = ctk.CTkButton(
-            self, text="▶ بدء تنظيف وتطهير البيانات القياسي", height=45,
-            fg_color="#2ecc71", hover_color="#27ae60", command=self.start_cleaning_thread,
-            font=ctk.CTkFont(family="Segoe UI", size=16, weight="bold"),
+            self.buttons_frame, text="⚙ تنظيف مخصص", height=45,
+            fg_color="#2ecc71", hover_color="#27ae60", command=lambda: self.start_cleaning_thread(smart_auto=False),
+            font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
             corner_radius=10
         )
-        self.clean_btn.pack(pady=10, padx=40, fill="x")
+        self.clean_btn.pack(side="right", padx=5, expand=True, fill="x")
+
+        self.smart_btn = ctk.CTkButton(
+            self.buttons_frame, text="✨ تنظيف ذكي تلقائي (بنقرة واحدة)", height=45,
+            fg_color="#d4af37", hover_color="#aa8c2c", command=lambda: self.start_cleaning_thread(smart_auto=True),
+            font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
+            corner_radius=10
+        )
+        self.smart_btn.pack(side="left", padx=5, expand=True, fill="x")
 
     def browse_target(self):
         target = filedialog.askopenfilename(
@@ -159,15 +170,16 @@ class SouaniCleanerGUI(ctk.CTk):
         self.ai_box.insert("0.0", f"❌ فشلت المعاينة التلقائية:\n{error_message}\n\n*ملاحظة: يمكنك الاستمرار والضغط على زر التنظيف إذا كان الملف سليماً.")
         self.status_label.configure(text="فشلت معاينة وفحص الملف.", text_color="#e74c3c")
 
-    def start_cleaning_thread(self):
+    def start_cleaning_thread(self, smart_auto: bool):
         if not self.selected_path:
             messagebox.showwarning("تنبيه", "الرجاء اختيار ملف بيانات أولاً!")
             return
-        self.clean_btn.configure(state="disabled", text="⏳ جاري معالجة المحرك الاحترافي v3.3...")
-        self.status_label.configure(text="المحرك يقوم بالتنظيف المتكامل وإصدار تقارير الـ Dashboard التفاعلية...", text_color="#3498db")
-        threading.Thread(target=self.run_cleaner_engine, daemon=True).start()
+        self.clean_btn.configure(state="disabled")
+        self.smart_btn.configure(state="disabled", text="⏳ جاري التنظيف التلقائي...")
+        self.status_label.configure(text="يقوم المحرك الآن باتخاذ القرارات الذكية وتطهير البيانات...", text_color="#d4af37")
+        threading.Thread(target=self.run_cleaner_engine, args=(smart_auto,), daemon=True).start()
 
-    def run_cleaner_engine(self):
+    def run_cleaner_engine(self, smart_auto: bool):
         try:
             engine = AdvancedDataCleaner(
                 numeric_strategy=self.strategy_var.get(),
@@ -175,23 +187,25 @@ class SouaniCleanerGUI(ctk.CTk):
                 backup=True,
                 overwrite=False
             )
-            cleaned_files = engine.clean_target(self.selected_path)
+            cleaned_files = engine.clean_target(self.selected_path, smart_auto=smart_auto)
             self.after(0, lambda: self.cleaning_success(cleaned_files))
         except Exception as e:
             self.after(0, lambda: self.cleaning_failed(str(e)))
 
     def cleaning_success(self, cleaned_files):
-        self.clean_btn.configure(state="normal", text="▶ بدء تنظيف وتطهير البيانات القياسي")
-        self.status_label.configure(text="🎉 إكتمل التطهير وتوليد لوحة تحكم النصوص العربية!", text_color="#2ecc71")
+        self.clean_btn.configure(state="normal")
+        self.smart_btn.configure(state="normal", text="✨ تنظيف ذكي تلقائي (بنقرة واحدة)")
+        self.status_label.configure(text="🎉 إكتمل التطهير والتنظيف التلقائي بنقرة واحدة!", text_color="#2ecc71")
         
         file_list_str = "\n".join([f"- {Path(f).name}" for f in cleaned_files])
         messagebox.showinfo(
-            "اكتملت المعالجة بنجاح v3.3", 
+            "اكتملت المعالجة التلقائية v3.3", 
             f"تم تنظيف كافة صفحات الملف وتطهير النصوص العربية بنجاح:\n\n{file_list_str}\n\n📄 توجه لمجلد Reports/ لمشاهدة التقرير التفاعلي المحسن!"
         )
 
     def cleaning_failed(self, err_msg):
-        self.clean_btn.configure(state="normal", text="▶ بدء تنظيف وتطهير البيانات القياسي")
+        self.clean_btn.configure(state="normal")
+        self.smart_btn.configure(state="normal", text="✨ تنظيف ذكي تلقائي (بنقرة واحدة)")
         self.status_label.configure(text="❌ فشل محرك المعالجة المطور.", text_color="#e74c3c")
         messagebox.showerror("خطأ في المحرك v3.3", f"حدثت مشكلة غير متوقعة أثناء التنظيف:\n{err_msg}")
 
