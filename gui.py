@@ -1,214 +1,215 @@
+import tkinter as tk
 import customtkinter as ctk
 from tkinter import filedialog, messagebox
 import threading
-import pandas as pd
-from pathlib import Path
+import os
 from data_cleaner import AdvancedDataCleaner
 
-ctk.set_appearance_mode("System")
+# ضبط المظهر العام للتطبيق
+ctk.set_appearance_mode("System")  # الداكن أو الفاتح حسب النظام
 ctk.set_default_color_theme("blue")
 
-class SouaniCleanerGUI(ctk.CTk):
+class DataCleanerGUI(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("Souani Data Cleaner v3.3 (Professional Edition)")
-        self.geometry("750x740")
-        self.resizable(False, False)
+        # إعدادات النافذة الرئيسية مع التجاوب مع التكبير
+        self.title("Souani Data Cleaner v3.3")
+        self.geometry("750x700")
+        self.resizable(True, True)
 
-        self.selected_path = None
+        # تهيئة محرك التنظيف الخلفي
         self.cleaner = AdvancedDataCleaner()
+        self.selected_file_path = None
 
+        # بناء عناصر الواجهة الرسومية
+        self._create_widgets()
+
+    def _create_widgets(self):
+        # عنوان التطبيق العلوي
         self.title_label = ctk.CTkLabel(
-            self, text="📊 Souani Data Cleaner v3.3 🧠",
-            font=ctk.CTkFont(family="Segoe UI", size=26, weight="bold")
+            self, 
+            text="📊 Souani Data Cleaner v3.3 (Professional Edition)", 
+            font=ctk.CTkFont(family="Helvetica", size=20, weight="bold")
         )
         self.title_label.pack(pady=15)
 
-        # إطار اختيار الملف
+        # ------------------ قسم اختيار الملف ------------------
         self.file_frame = ctk.CTkFrame(self)
-        self.file_frame.pack(pady=10, padx=40, fill="x")
+        self.file_frame.pack(pady=5, padx=25, fill="x")
 
-        self.path_entry = ctk.CTkEntry(
+        self.btn_browse = ctk.CTkButton(
             self.file_frame, 
-            placeholder_text="اختر ملفاً لبدء التحليل الذكي والتنظيف...",
-            justify="right", 
-            font=ctk.CTkFont(family="Segoe UI", size=13),
-            corner_radius=10,
-            border_width=1,
-            fg_color="#fcfcfc"
+            text="📂 تصفح واختيار الملف", 
+            command=self._browse_file,
+            font=ctk.CTkFont(family="Helvetica", size=13, weight="bold")
         )
-        self.path_entry.pack(side="right", padx=10, pady=15, expand=True, fill="x")
+        self.btn_browse.pack(side="right", padx=10, pady=10)
 
-        self.browse_btn = ctk.CTkButton(
-            self.file_frame, text="📂 تصفح", width=100, command=self.browse_target,
-            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
-            corner_radius=10
+        self.lbl_file_path = ctk.CTkLabel(
+            self.file_frame, 
+            text="لم يتم اختيار أي ملف بعد...", 
+            anchor="e",
+            font=ctk.CTkFont(family="Helvetica", size=12)
         )
-        self.browse_btn.pack(side="left", padx=10, pady=15)
+        self.lbl_file_path.pack(side="left", fill="x", expand=True, padx=10, pady=10)
 
-        # قسم اقتراحات وقراءة الـ AI
-        self.ai_frame = ctk.CTkFrame(self)
-        self.ai_frame.pack(pady=10, padx=40, fill="both", expand=True)
+        # ------------------ قسم التحليل والمعاينة الذكية ------------------
+        self.preview_frame = ctk.CTkFrame(self)
+        self.preview_frame.pack(pady=10, padx=25, fill="x")
 
-        self.ai_title = ctk.CTkLabel(
-            self.ai_frame, text="🧠 تحليل جودة البيانات واقتراحات AI (المعاينة الأولى)",
-            font=ctk.CTkFont(family="Segoe UI", size=15, weight="bold")
+        self.lbl_preview_title = ctk.CTkLabel(
+            self.preview_frame, 
+            text="🔍 (المعاينة الأولى) AI تحليل جودة البيانات واقتراحات", 
+            font=ctk.CTkFont(family="Helvetica", size=13, weight="bold")
         )
-        self.ai_title.pack(pady=(12, 5))
+        self.lbl_preview_title.pack(pady=5)
 
-        self.ai_box = ctk.CTkTextbox(
-            self.ai_frame, font=ctk.CTkFont(family="Segoe UI", size=12), wrap="word"
+        # ضبط ارتفاع مربع المعاينة بـ 140 ليترك مساحة كافية للأزرار
+        self.txt_preview = ctk.CTkTextbox(
+            self.preview_frame, 
+            height=140,
+            font=ctk.CTkFont(family="Courier New", size=12),
+            wrap="word"
         )
-        self.ai_box.pack(padx=15, pady=15, fill="both", expand=True)
-        self.ai_box.insert("0.0", "الرجاء اختيار ملف بيانات ليقوم المحرك بفحصه أولياً وتقديم النصائح هنا...")
+        self.txt_preview.pack(pady=5, padx=15, fill="x")
+        self.txt_preview.configure(state="disabled")
 
-        # قسم خيارات واستراتيجيات المعالجة والتطهير
-        self.settings_frame = ctk.CTkFrame(self)
-        self.settings_frame.pack(pady=10, padx=40, fill="x")
+        # ------------------ قسم الخيارات المخصصة ------------------
+        self.options_frame = ctk.CTkFrame(self)
+        self.options_frame.pack(pady=10, padx=25, fill="x")
 
-        # معالجة الفراغات الرقمية
-        self.strategy_label = ctk.CTkLabel(
-            self.settings_frame, text="معالجة الفراغات الرقمية:",
-            font=ctk.CTkFont(family="Segoe UI", size=12)
-        )
-        self.strategy_label.grid(row=0, column=1, padx=20, pady=10, sticky="e")
-
-        self.strategy_var = ctk.StringVar(value="median")
-        self.strategy_menu = ctk.CTkOptionMenu(
-            self.settings_frame, values=["median", "mean", "zero", "keep"],
-            variable=self.strategy_var, width=140, corner_radius=8
-        )
-        self.strategy_menu.grid(row=0, column=0, padx=20, pady=10, sticky="w")
-
-        # معالجة البيانات المتطرفة
-        self.outlier_label = ctk.CTkLabel(
-            self.settings_frame, text="معالجة القيم الشاذة (Outliers):",
-            font=ctk.CTkFont(family="Segoe UI", size=12)
-        )
-        self.outlier_label.grid(row=1, column=1, padx=20, pady=10, sticky="e")
-
-        self.outlier_var = ctk.StringVar(value="keep")
-        self.outlier_menu = ctk.CTkOptionMenu(
-            self.settings_frame, values=["keep", "cap", "remove"],
-            variable=self.outlier_var, width=140, corner_radius=8
-        )
-        self.outlier_menu.grid(row=1, column=0, padx=20, pady=10, sticky="w")
+        # خيار معالجة الفراغات الرقمية
+        self.lbl_missing = ctk.CTkLabel(self.options_frame, text=":معالجة الفراغات الرقمية", font=ctk.CTkFont(family="Helvetica", size=12))
+        self.lbl_missing.grid(row=0, column=1, padx=15, pady=8, sticky="e")
         
-        self.settings_frame.grid_columnconfigure(0, weight=1)
-        self.settings_frame.grid_columnconfigure(1, weight=1)
+        self.cmb_missing = ctk.CTkComboBox(self.options_frame, values=["median", "mean", "drop"])
+        self.cmb_missing.grid(row=0, column=0, padx=15, pady=8, sticky="w")
+        self.cmb_missing.set("median")
 
-        # شريط الحالة السفلي
-        self.status_label = ctk.CTkLabel(
-            self, text="جاهز للتحليل الذكي...", text_color="gray",
-            font=ctk.CTkFont(family="Segoe UI", size=13)
+        # خيار معالجة القيم الشاذة
+        self.lbl_outliers = ctk.CTkLabel(self.options_frame, text=":معالجة القيم الشاذة (Outliers)", font=ctk.CTkFont(family="Helvetica", size=12))
+        self.lbl_outliers.grid(row=1, column=1, padx=15, pady=8, sticky="e")
+        
+        self.cmb_outliers = ctk.CTkComboBox(self.options_frame, values=["keep", "cap", "remove"])
+        self.cmb_outliers.grid(row=1, column=0, padx=15, pady=8, sticky="w")
+        self.cmb_outliers.set("keep")
+
+        # ------------------ قسم أزرار التنظيف والتشغيل ------------------
+        self.actions_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.actions_frame.pack(pady=10, padx=25, fill="x")
+
+        # زر التنظيف الذكي التلقائي بنقرة واحدة
+        self.btn_smart_clean = ctk.CTkButton(
+            self.actions_frame,
+            text="✨ تنظيف ذكي تلقائي (بنقرة واحدة)",
+            fg_color="#D4AF37",  # لون ذهبي مميز
+            hover_color="#AA8C2C",
+            text_color="#000000",
+            command=self._run_smart_clean,
+            font=ctk.CTkFont(family="Helvetica", size=14, weight="bold")
         )
-        self.status_label.pack(pady=5)
+        self.btn_smart_clean.pack(fill="x", pady=4)
 
-        # --- أزرار المعالجة والتنظيف التلقائي ---
-        self.buttons_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.buttons_frame.pack(pady=10, padx=40, fill="x")
-
-        self.clean_btn = ctk.CTkButton(
-            self.buttons_frame, text="⚙ تنظيف مخصص", height=45,
-            fg_color="#2ecc71", hover_color="#27ae60", command=lambda: self.start_cleaning_thread(smart_auto=False),
-            font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
-            corner_radius=10
+        # زر التنظيف المخصص بالخيارات المحددة
+        self.btn_custom_clean = ctk.CTkButton(
+            self.actions_frame,
+            text="⚙️ تشغيل التنظيف بالخيارات المخصصة",
+            fg_color="#2ecc71",
+            hover_color="#27ae60",
+            command=self._run_custom_clean,
+            font=ctk.CTkFont(family="Helvetica", size=13, weight="bold")
         )
-        self.clean_btn.pack(side="right", padx=5, expand=True, fill="x")
+        self.btn_custom_clean.pack(fill="x", pady=4)
 
-        self.smart_btn = ctk.CTkButton(
-            self.buttons_frame, text="✨ تنظيف ذكي تلقائي (بنقرة واحدة)", height=45,
-            fg_color="#d4af37", hover_color="#aa8c2c", command=lambda: self.start_cleaning_thread(smart_auto=True),
-            font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
-            corner_radius=10
-        )
-        self.smart_btn.pack(side="left", padx=5, expand=True, fill="x")
+        # مؤشر التحميل السفلي
+        self.progress_bar = ctk.CTkProgressBar(self)
+        self.progress_bar.pack(pady=8, padx=25, fill="x")
+        self.progress_bar.set(0)
 
-    def browse_target(self):
-        target = filedialog.askopenfilename(
-            filetypes=[("Data Files", "*.csv *.xlsx *.xls *.json"), ("All Files", "*.*")]
-        )
-        if target:
-            self.selected_path = target
-            self.path_entry.delete(0, ctk.END)
-            self.path_entry.insert(0, target)
-            self.status_label.configure(text="جاري تشغيل تحليل جودة البيانات الأولي...", text_color="#3498db")
-
-            threading.Thread(target=self.run_ai_analysis, args=(target,), daemon=True).start()
-
-    def run_ai_analysis(self, path):
-        try:
-            path_obj = Path(path)
-            suffix = path_obj.suffix.lower()
+    def _browse_file(self):
+        file_types = [("Data Files", "*.xlsx *.csv *.json"), ("Excel Files", "*.xlsx"), ("CSV Files", "*.csv"), ("JSON Files", "*.json")]
+        path = filedialog.askopenfilename(title="اختر ملف البيانات لتنظيفه", filetypes=file_types)
+        
+        if path:
+            self.selected_file_path = path
+            self.lbl_file_path.configure(text=os.path.basename(path))
+            self._update_preview("⏳ جاري تحليل الملف وتوليد الاقتراحات الذكية أولياً...")
             
-            if suffix == ".csv":
-                df = pd.read_csv(path, na_values=AdvancedDataCleaner.COMMON_NA_VALUES, keep_default_na=True)
-            elif suffix in [".xlsx", ".xls"]:
-                sheets = pd.read_excel(path, sheet_name=None, na_values=AdvancedDataCleaner.COMMON_NA_VALUES, keep_default_na=True)
-                first_sheet = list(sheets.keys())[0]
-                df = sheets[first_sheet]
-            elif suffix == ".json":
-                df = pd.read_json(path)
-                df.replace(AdvancedDataCleaner.COMMON_NA_VALUES, pd.NA, inplace=True)
-            else:
-                raise ValueError("صيغة الملف غير مدعومة للمعاينة السريعة.")
+            # تشغيل المعاينة في الخلفية لضمان عدم تجميد الواجهة
+            threading.Thread(target=self._load_file_preview, daemon=True).start()
 
-            suggestions = self.cleaner.generate_ai_suggestions(df)
-            self.after(0, lambda: self.show_ai_suggestions(suggestions))
+    def _load_file_preview(self):
+        try:
+            suggestions = self.cleaner.generate_initial_suggestions(self.selected_file_path)
+            self._update_preview(suggestions)
         except Exception as e:
-            self.after(0, lambda: self.show_ai_error(str(e)))
+            self._update_preview(f"❌ خطأ أثناء تحليل الملف المختار:\n{str(e)}")
 
-    def show_ai_suggestions(self, suggestions):
-        self.ai_box.delete("0.0", ctk.END)
-        for sug in suggestions:
-            self.ai_box.insert(ctk.END, f"{sug}\n\n")
-        self.status_label.configure(text="تم تحليل الصفحة الأولى وتوليد الاقتراحات بنجاح.", text_color="green")
+    def _update_preview(self, text):
+        self.txt_preview.configure(state="normal")
+        self.txt_preview.delete("1.0", tk.END)
+        self.txt_preview.insert(tk.END, text)
+        self.txt_preview.configure(state="disabled")
 
-    def show_ai_error(self, error_message):
-        self.ai_box.delete("0.0", ctk.END)
-        self.ai_box.insert("0.0", f"❌ فشلت المعاينة التلقائية:\n{error_message}\n\n*ملاحظة: يمكنك الاستمرار والضغط على زر التنظيف إذا كان الملف سليماً.")
-        self.status_label.configure(text="فشلت معاينة وفحص الملف.", text_color="#e74c3c")
-
-    def start_cleaning_thread(self, smart_auto: bool):
-        if not self.selected_path:
+    def _run_smart_clean(self):
+        if not self.selected_file_path:
             messagebox.showwarning("تنبيه", "الرجاء اختيار ملف بيانات أولاً!")
             return
-        self.clean_btn.configure(state="disabled")
-        self.smart_btn.configure(state="disabled", text="⏳ جاري التنظيف التلقائي...")
-        self.status_label.configure(text="يقوم المحرك الآن باتخاذ القرارات الذكية وتطهير البيانات...", text_color="#d4af37")
-        threading.Thread(target=self.run_cleaner_engine, args=(smart_auto,), daemon=True).start()
-
-    def run_cleaner_engine(self, smart_auto: bool):
-        try:
-            engine = AdvancedDataCleaner(
-                numeric_strategy=self.strategy_var.get(),
-                outlier_strategy=self.outlier_var.get(),
-                backup=True,
-                overwrite=False
-            )
-            cleaned_files = engine.clean_target(self.selected_path, smart_auto=smart_auto)
-            self.after(0, lambda: self.cleaning_success(cleaned_files))
-        except Exception as e:
-            self.after(0, lambda: self.cleaning_failed(str(e)))
-
-    def cleaning_success(self, cleaned_files):
-        self.clean_btn.configure(state="normal")
-        self.smart_btn.configure(state="normal", text="✨ تنظيف ذكي تلقائي (بنقرة واحدة)")
-        self.status_label.configure(text="🎉 إكتمل التطهير والتنظيف التلقائي بنقرة واحدة!", text_color="#2ecc71")
         
-        file_list_str = "\n".join([f"- {Path(f).name}" for f in cleaned_files])
-        messagebox.showinfo(
-            "اكتملت المعالجة التلقائية v3.3", 
-            f"تم تنظيف كافة صفحات الملف وتطهير النصوص العربية بنجاح:\n\n{file_list_str}\n\n📄 توجه لمجلد Reports/ لمشاهدة التقرير التفاعلي المحسن!"
-        )
+        self._toggle_buttons(False)
+        self.progress_bar.start()
+        
+        # تشغيل التنظيف التلقائي الذكي في خيط معالجة منفصل
+        threading.Thread(target=self._process_cleaning, args=(True,), daemon=True).start()
 
-    def cleaning_failed(self, err_msg):
-        self.clean_btn.configure(state="normal")
-        self.smart_btn.configure(state="normal", text="✨ تنظيف ذكي تلقائي (بنقرة واحدة)")
-        self.status_label.configure(text="❌ فشل محرك المعالجة المطور.", text_color="#e74c3c")
-        messagebox.showerror("خطأ في المحرك v3.3", f"حدثت مشكلة غير متوقعة أثناء التنظيف:\n{err_msg}")
+    def _run_custom_clean(self):
+        if not self.selected_file_path:
+            messagebox.showwarning("تنبيه", "الرجاء اختيار ملف بيانات أولاً!")
+            return
+        
+        self._toggle_buttons(False)
+        self.progress_bar.start()
+        
+        # تشغيل التنظيف المخصص بالخيارات المدخلة
+        threading.Thread(target=self._process_cleaning, args=(False,), daemon=True).start()
+
+    def _process_cleaning(self, is_smart):
+        try:
+            if is_smart:
+                output_path = self.cleaner.clean(self.selected_file_path, smart_auto=True)
+            else:
+                missing_strategy = self.cmb_missing.get()
+                outlier_strategy = self.cmb_outliers.get()
+                output_path = self.cleaner.clean(
+                    self.selected_file_path, 
+                    smart_auto=False, 
+                    missing_num=missing_strategy, 
+                    outliers=outlier_strategy
+                )
+
+            self.progress_bar.stop()
+            self.progress_bar.set(1)
+            self._toggle_buttons(True)
+            
+            # عرض رسالة نجاح مخصصة للمستخدم
+            filename = os.path.basename(output_path)
+            messagebox.showinfo(
+                "v3.3 اكتملت المعالجة التلقائية", 
+                f"تم تنظيف كافة صفحات الملف وتطهير النصوص العربية بنجاح:\n\n - {filename}\n\n📄 لمشاهدة التقرير التفاعلي المحسن توجه لمجلد Reports/"
+            )
+        except Exception as e:
+            self.progress_bar.stop()
+            self.progress_bar.set(0)
+            self._toggle_buttons(True)
+            messagebox.showerror("خطأ في المعالجة", f"عذراً، حدث خطأ أثناء عملية التنظيف:\n{str(e)}")
+
+    def _toggle_buttons(self, state):
+        btn_state = "normal" if state else "disabled"
+        self.btn_browse.configure(state=btn_state)
+        self.btn_smart_clean.configure(state=btn_state)
+        self.btn_custom_clean.configure(state=btn_state)
 
 if __name__ == "__main__":
-    app = SouaniCleanerGUI()
+    app = DataCleanerGUI()
     app.mainloop()
