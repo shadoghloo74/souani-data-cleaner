@@ -1,0 +1,3 @@
+Product: Souani Data Cleaner
+Version: 4.0 LTS
+Build: 4.0.0-lts.20260724

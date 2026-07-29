@@ -1,0 +1,37 @@
+
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <title>Souani Data Cleaner Report</title>
+            <style>
+                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f6f9; color: #333; margin: 40px; }
+                .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+                h1 { color: #1a365d; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+                .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 20px 0; }
+                .metric { background: #ebf8ff; padding: 15px; border-radius: 8px; border-left: 4px solid #3182ce; }
+                .metric label { font-size: 0.85em; color: #4a5568; display: block; }
+                .metric span { font-size: 1.4em; font-weight: bold; color: #2b6cb0; }
+                ul { background: #f7fafc; padding: 20px 40px; border-radius: 8px; }
+            </style>
+        </head>
+        <body>
+            <div class="card">
+                <h1>Souani Data Cleaner - Execution Report</h1>
+                <p><strong>File:</strong> sample_large_cleaned.csv | <strong>Date:</strong> 2026-07-24 01:23:58</p>
+                
+                <div class="grid">
+                    <div class="metric"><label>Rows Cleaned</label><span>15000 / 15000</span></div>
+                    <div class="metric"><label>Duplicates Removed</label><span>0</span></div>
+                    <div class="metric"><label>Execution Time</label><span>0.147s</span></div>
+                    <div class="metric"><label>Processing Speed</label><span>101822.77 r/s</span></div>
+                    <div class="metric"><label>Memory Usage</label><span>N/A</span></div>
+                    <div class="metric"><label>File Size</label><span>0.54 MB (CSV)</span></div>
+                </div>
+
+                <h3>AI Pipeline Recommendations</h3>
+                <ul><li>Detected 17523 null values across the dataset. Consider imputation.</li><li>All string columns have been trimmed of leading/trailing whitespace.</li><li>Data types verified and normalized for standard pipeline integration.</li><li>Backup copy created prior to modification.</li></ul>
+            </div>
+        </body>
+        </html>
+        

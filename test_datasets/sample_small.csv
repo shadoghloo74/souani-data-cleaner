@@ -1,0 +1,16 @@
+﻿name,age,salary,join_date
+ Ahmed Ali ,29,5000,2022-01-15
+ Sara Mohamed,,6200,2021-07-20
+Khaled Hassan ,35,,2020-03-10
+ Mona Said ,41,7000,
+Omar Adel,28,4500,2023-05-01
+ Laila Samir ,,5200,2022-11-12
+Hany Mostafa,33,5800,2021-01-30
+ Nour Ahmed ,26,,2024-02-18
+Youssef Ali ,39,8000,
+ Dina Fathy,31,6100,2020-09-09
+ Karim Nabil ,,4900,2023-12-01
+ Salma Tarek,27,,2022-06-15
+Mahmoud Sami ,45,9000,2019-04-25
+ Rana Hossam ,30,5500,bad-date
+ Tamer Fouad,38,7600,2021-10-10
