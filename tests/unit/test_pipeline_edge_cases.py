@@ -133,9 +133,9 @@ def test_pipeline_custom_threshold_and_params():
     pipeline = ProcessingPipeline(
         column_name="val",
         detection_method="zscore",
-        detection_params={"threshold": 2.0},
+        detection_kwargs={"threshold": 2.0},
         treatment_action="clip",
-        treatment_params={"lower_quantile": 0.05, "upper_quantile": 0.95},
+        treatment_kwargs={"lower_quantile": 0.05, "upper_quantile": 0.95},
         apply_treatment=True
     )
     df = pd.DataFrame({"val": [10.0, 12.0, 11.0, 100.0, -50.0]})
@@ -150,7 +150,7 @@ def test_pipeline_constant_treatment():
         column_name="val",
         detection_method="iqr",
         treatment_action="constant",
-        treatment_params={"fill_value": 0.0},
+        treatment_kwargs={"fill_value": 0.0},
         apply_treatment=True
     )
     df = pd.DataFrame({"val": [10.0, 12.0, 11.0, 500.0]})
@@ -184,3 +184,4 @@ def test_pipeline_flag_treatment():
     df = pd.DataFrame({"val": [10.0, 12.0, 11.0, 500.0]})
     res = pipeline.run(df)
     assert res is not None
+
