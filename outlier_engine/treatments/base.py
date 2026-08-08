@@ -1,4 +1,4 @@
-﻿"""Base treatment strategy module."""
+"""Base treatment strategy module."""
 
 from abc import ABC, abstractmethod
 import pandas as pd
@@ -11,4 +11,3 @@ class BaseTreatment(ABC):
     @abstractmethod
     def apply(self, series: pd.Series, detection_result: DetectionResult, **kwargs) -> pd.Series:
         """Apply treatment to a pandas Series using DetectionResult."""
-        pass

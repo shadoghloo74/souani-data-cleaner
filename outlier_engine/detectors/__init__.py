@@ -1,4 +1,4 @@
-﻿"""Detectors module initialization for Outlier Engine."""
+"""Detectors module initialization for Outlier Engine."""
 
 from outlier_engine.detectors.base import BaseDetector
 from outlier_engine.detectors.iqr import IQRDetector

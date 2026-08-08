@@ -1,4 +1,4 @@
-﻿import pytest
+import pytest
 import pandas as pd
 
 from outlier_engine.pipelines import ProcessingPipeline, PipelineResult
@@ -65,7 +65,8 @@ def test_pipeline_validation_failure_empty_df():
 
 
 def test_pipeline_validation_failure_missing_column():
-    pipeline = ProcessingPipeline(column_name="missing_col", detection_method="zscore")
+    pipeline = ProcessingPipeline(
+        column_name="missing_col", detection_method="zscore")
     df = pd.DataFrame({"val": [1.0, 2.0, 3.0]})
 
     with pytest.raises(OutlierEngineError):
@@ -73,7 +74,8 @@ def test_pipeline_validation_failure_missing_column():
 
 
 def test_pipeline_detection_failure_invalid_method():
-    pipeline = ProcessingPipeline(column_name="val", detection_method="non_existent_method")
+    pipeline = ProcessingPipeline(
+        column_name="val", detection_method="non_existent_method")
     df = pd.DataFrame({"val": [1.0, 2.0, 3.0]})
 
     with pytest.raises(OutlierEngineError):

@@ -1,4 +1,4 @@
-﻿import pytest
+import pytest
 from dataclasses import FrozenInstanceError
 from outlier_engine.metadata import ExecutionMetadata, FrameworkInfo
 

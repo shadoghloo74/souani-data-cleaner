@@ -1,4 +1,4 @@
-﻿"""Processing pipeline module for orchestrating detection, treatment, metadata, and reporting."""
+"""Processing pipeline module for orchestrating detection, treatment, metadata, and reporting."""
 
 import time
 import inspect
@@ -37,10 +37,12 @@ class ProcessingPipeline:
         treatment_kwargs: Optional[Dict[str, Any]] = None,
     ) -> None:
         if not column_name or not isinstance(column_name, str):
-            raise OutlierEngineError("Pipeline configuration error: Invalid column_name provided.")
+            raise OutlierEngineError(
+                "Pipeline configuration error: Invalid column_name provided.")
 
         if not detection_method or not isinstance(detection_method, str):
-            raise OutlierEngineError("Pipeline configuration error: Invalid detection_method provided.")
+            raise OutlierEngineError(
+                "Pipeline configuration error: Invalid detection_method provided.")
 
         self.column_name = column_name
         self.detection_method = detection_method
@@ -60,7 +62,8 @@ class ProcessingPipeline:
             if df.empty:
                 raise OutlierEngineError("Input DataFrame is empty.")
             if self.column_name not in df.columns:
-                raise OutlierEngineError(f"Column '{self.column_name}' not found in DataFrame.")
+                raise OutlierEngineError(
+                    f"Column '{self.column_name}' not found in DataFrame.")
 
             for attr in dir(validators):
                 if attr.startswith("validate_"):
@@ -79,7 +82,8 @@ class ProcessingPipeline:
         except Exception as e:
             if isinstance(e, OutlierEngineError):
                 raise
-            raise OutlierEngineError(f"Pipeline validation failure: {e}") from e
+            raise OutlierEngineError(
+                f"Pipeline validation failure: {e}") from e
 
         # Step 2: Detection
         try:
@@ -113,7 +117,8 @@ class ProcessingPipeline:
             except Exception as e:
                 if isinstance(e, OutlierEngineError):
                     raise
-                raise OutlierEngineError(f"Pipeline treatment failure: {e}") from e
+                raise OutlierEngineError(
+                    f"Pipeline treatment failure: {e}") from e
 
         execution_duration = time.perf_counter() - start_time
 
@@ -198,7 +203,8 @@ class ProcessingPipeline:
                         if fill_missing_required:
                             kwargs[name] = None
                         else:
-                            raise TypeError(f"Missing required argument: {name}")
+                            raise TypeError(
+                                f"Missing required argument: {name}")
                 return kwargs
 
             report_func = None
@@ -255,7 +261,8 @@ class ProcessingPipeline:
         except Exception as e:
             if isinstance(e, OutlierEngineError):
                 raise
-            raise OutlierEngineError(f"Pipeline report generation failure: {e}") from e
+            raise OutlierEngineError(
+                f"Pipeline report generation failure: {e}") from e
 
         # Step 6: Output
         return PipelineResult(

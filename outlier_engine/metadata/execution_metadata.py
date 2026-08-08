@@ -1,4 +1,4 @@
-﻿"""Execution metadata module for Outlier Engine."""
+"""Execution metadata module for Outlier Engine."""
 
 import uuid
 from dataclasses import dataclass, field, asdict

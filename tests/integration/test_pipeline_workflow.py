@@ -1,4 +1,3 @@
-﻿import pytest
 import pandas as pd
 
 from outlier_engine.pipelines import ProcessingPipeline, PipelineResult
@@ -6,7 +5,6 @@ from outlier_engine.plugins import PluginManifest, BasePlugin, PluginLoader
 from outlier_engine.detectors.base import BaseDetector
 from outlier_engine.treatments.base import BaseTreatment
 from outlier_engine.types import DetectionResult
-import outlier_engine.reports as reports
 
 
 # Standard Plugin for Integration Test
@@ -42,8 +40,10 @@ class PipeTestPlugin(BasePlugin):
         )
 
     def register(self) -> None:
-        PluginLoader.register_detector("pipe_custom_detector", PipeCustomDetector)
-        PluginLoader.register_treatment("pipe_custom_treatment", PipeCustomTreatment)
+        PluginLoader.register_detector(
+            "pipe_custom_detector", PipeCustomDetector)
+        PluginLoader.register_treatment(
+            "pipe_custom_treatment", PipeCustomTreatment)
 
 
 def test_pipeline_full_workflow_standard_components():
@@ -87,7 +87,8 @@ def test_pipeline_full_workflow_with_plugin_detector():
 
     assert isinstance(result, PipelineResult)
     assert result.detection_result.outlier_count == 2
-    assert result.processed_df["score"].tolist() == [10.0, 20.0, 30.0, 0.0, 0.0]
+    assert result.processed_df["score"].tolist() == [
+        10.0, 20.0, 30.0, 0.0, 0.0]
     assert result.report is not None
     assert result.metadata.detection_method == "pipe_custom_detector"
     assert result.metadata.treatment_action == "pipe_custom_treatment"

@@ -1,4 +1,4 @@
-﻿"""Treatment service module."""
+"""Treatment service module."""
 
 import pandas as pd
 from outlier_engine.registries import TreatmentRegistry

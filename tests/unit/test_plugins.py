@@ -1,4 +1,4 @@
-﻿import pytest
+import pytest
 import pandas as pd
 from dataclasses import FrozenInstanceError
 
@@ -78,8 +78,10 @@ def test_plugin_loader_success():
     loader.load_plugin(plugin)
 
     assert "custom_plugin" in loader.loaded_plugins
-    assert isinstance(DetectionRegistry.get("custom_dummy"), CustomDummyDetector)
-    assert isinstance(TreatmentRegistry.get("custom_zero"), CustomDummyTreatment)
+    assert isinstance(DetectionRegistry.get(
+        "custom_dummy"), CustomDummyDetector)
+    assert isinstance(TreatmentRegistry.get(
+        "custom_zero"), CustomDummyTreatment)
 
 
 def test_plugin_loader_duplicate_prevention():

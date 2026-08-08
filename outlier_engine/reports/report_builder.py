@@ -1,4 +1,4 @@
-﻿"""Report builder module for Outlier Engine."""
+"""Report builder module for Outlier Engine."""
 
 import pandas as pd
 from typing import Dict, List, Optional
@@ -26,7 +26,8 @@ class ReportBuilder:
         processed_columns: List[str],
     ) -> "ReportBuilder":
         """Capture metadata from input dataframe before processing."""
-        numeric_cols = df_before.select_dtypes(include=["number"]).columns.tolist()
+        numeric_cols = df_before.select_dtypes(
+            include=["number"]).columns.tolist()
         missing_counts = df_before[processed_columns].isnull().sum().to_dict()
 
         self._metadata = MetadataReport(

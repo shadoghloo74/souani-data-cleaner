@@ -1,4 +1,4 @@
-﻿"""Framework metadata and system information."""
+"""Framework metadata and system information."""
 
 import platform
 import sys

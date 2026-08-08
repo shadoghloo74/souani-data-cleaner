@@ -1,4 +1,4 @@
-﻿"""Z-score outlier detector strategy."""
+"""Z-score outlier detector strategy."""
 
 import pandas as pd
 from outlier_engine.detectors.base import BaseDetector

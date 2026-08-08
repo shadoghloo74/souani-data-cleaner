@@ -1,4 +1,4 @@
-﻿"""Reports module initialization."""
+"""Reports module initialization."""
 
 from outlier_engine.reports.report_builder import ReportBuilder
 from outlier_engine.reports.json_exporter import JSONExporter

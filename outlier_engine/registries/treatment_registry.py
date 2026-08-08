@@ -1,4 +1,4 @@
-﻿"""Registry for managing and instantiating outlier treatments."""
+"""Registry for managing and instantiating outlier treatments."""
 
 from typing import Dict, Type
 from outlier_engine.treatments.base import BaseTreatment

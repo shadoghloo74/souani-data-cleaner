@@ -1,4 +1,3 @@
-﻿import pytest
 import pandas as pd
 from outlier_engine.models import ExecutionContext, DetectionResultModel
 from outlier_engine.reports import ReportBuilder, JSONExporter, MarkdownExporter

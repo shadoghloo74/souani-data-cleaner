@@ -1,4 +1,5 @@
-﻿"""Metadata report data model."""
+from typing import Any
+"""Metadata report data model."""
 
 from dataclasses import dataclass, field, asdict
 from typing import Dict, List

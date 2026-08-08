@@ -1,4 +1,4 @@
-﻿"""Type definitions and data models for Outlier Engine."""
+"""Type definitions and data models for Outlier Engine."""
 
 from enum import Enum
 from typing import Any, Dict, Optional

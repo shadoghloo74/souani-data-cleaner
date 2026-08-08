@@ -1,4 +1,4 @@
-﻿"""OutlierEngine Orchestrator module."""
+"""OutlierEngine Orchestrator module."""
 
 from typing import Dict, List, Optional, Union
 import pandas as pd
@@ -25,16 +25,20 @@ class OutlierEngine:
         df: pd.DataFrame,
         columns: Optional[List[str]] = None,
         method: Union[str, DetectionMethod] = DetectionMethod.IQR,
-        action: Union[str, OutlierTreatmentAction] = OutlierTreatmentAction.CLIP,
+        action: Union[str,
+                      OutlierTreatmentAction] = OutlierTreatmentAction.CLIP,
         **kwargs,
     ) -> OutlierEngineSummary:
         """
         Process specified columns in a DataFrame through detection and treatment pipelines.
         """
-        method_str = method.value if isinstance(method, DetectionMethod) else method
-        action_str = action.value if isinstance(action, OutlierTreatmentAction) else action
+        method_str = method.value if isinstance(
+            method, DetectionMethod) else method
+        action_str = action.value if isinstance(
+            action, OutlierTreatmentAction) else action
 
-        target_cols = columns or df.select_dtypes(include=["number"]).columns.tolist()
+        target_cols = columns or df.select_dtypes(
+            include=["number"]).columns.tolist()
         processed_df = df.copy()
         col_results: Dict[str, ColumnOutlierResult] = {}
 

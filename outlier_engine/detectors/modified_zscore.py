@@ -1,4 +1,4 @@
-﻿"""Modified Z-score outlier detector strategy (robust to extreme outliers)."""
+"""Modified Z-score outlier detector strategy (robust to extreme outliers)."""
 
 import pandas as pd
 from outlier_engine.detectors.base import BaseDetector

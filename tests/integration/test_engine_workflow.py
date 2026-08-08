@@ -1,4 +1,4 @@
-﻿import pytest
+import pytest
 import pandas as pd
 import numpy as np
 
@@ -36,14 +36,16 @@ def sample_dataframe():
 # ==========================================
 
 def test_registry_default_detectors():
-    expected_detectors = ["iqr", "zscore", "modified_zscore", "percentile", "std_dev"]
+    expected_detectors = ["iqr", "zscore",
+                          "modified_zscore", "percentile", "std_dev"]
     for name in expected_detectors:
         detector = DetectionRegistry.get(name)
         assert detector is not None
 
 
 def test_registry_default_treatments():
-    expected_treatments = ["clip", "mean", "median", "constant", "drop_rows", "flag"]
+    expected_treatments = ["clip", "mean",
+                           "median", "constant", "drop_rows", "flag"]
     for name in expected_treatments:
         treatment = TreatmentRegistry.get(name)
         assert treatment is not None
@@ -86,7 +88,8 @@ def test_modified_zscore_detector(sample_series):
 
 def test_percentile_detector(sample_series):
     detector = PercentileDetector()
-    res = detector.detect(sample_series, lower_quantile=0.05, upper_quantile=0.95)
+    res = detector.detect(
+        sample_series, lower_quantile=0.05, upper_quantile=0.95)
     assert isinstance(res, DetectionResult)
     assert res.outlier_count >= 1
 
@@ -148,11 +151,13 @@ def test_flag_treatment(sample_series):
 # ==========================================
 
 def test_services_delegation(sample_series):
-    det_res = DetectionService.detect_column(sample_series, "test_col", method="iqr", multiplier=1.5)
+    det_res = DetectionService.detect_column(
+        sample_series, "test_col", method="iqr", multiplier=1.5)
     assert isinstance(det_res, DetectionResult)
     assert det_res.outlier_count == 2
 
-    treated = TreatmentService.treat_column(sample_series, det_res, action="clip")
+    treated = TreatmentService.treat_column(
+        sample_series, det_res, action="clip")
     assert treated.iloc[9] == det_res.upper_bound
 
 
@@ -173,4 +178,5 @@ def test_engine_full_workflow(sample_dataframe):
     assert len(summary.processed_df) == len(sample_dataframe)
     assert "feature1" in summary.column_results
     assert summary.column_results["feature1"].detection_result.outlier_count == 2
-    assert summary.processed_df["feature2"].equals(sample_dataframe["feature2"])
+    assert summary.processed_df["feature2"].equals(
+        sample_dataframe["feature2"])

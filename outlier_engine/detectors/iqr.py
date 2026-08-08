@@ -1,4 +1,4 @@
-﻿"""Interquartile Range (IQR) outlier detector strategy."""
+"""Interquartile Range (IQR) outlier detector strategy."""
 
 import pandas as pd
 from outlier_engine.detectors.base import BaseDetector
@@ -48,5 +48,6 @@ class IQRDetector(BaseDetector):
             upper_bound=upper_bound,
             method=DetectionMethod.IQR,
             outlier_count=int(mask.sum()),
-            statistics={"q1": q1, "q3": q3, "iqr": iqr, "multiplier": multiplier},
+            statistics={"q1": q1, "q3": q3,
+                        "iqr": iqr, "multiplier": multiplier},
         )

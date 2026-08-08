@@ -1,4 +1,4 @@
-﻿"""Markdown Exporter module for Outlier Engine reports."""
+"""Markdown Exporter module for Outlier Engine reports."""
 
 from outlier_engine.models import EngineReport
 
@@ -17,7 +17,8 @@ class MarkdownExporter:
         lines.append(f"- **Timestamp:** {report.context.timestamp}")
         lines.append(f"- **Strict Numeric:** {report.context.strict_numeric}")
         lines.append(f"- **Inplace Processing:** {report.context.inplace}")
-        lines.append(f"- **Total Outliers Detected:** {report.total_outliers_detected}")
+        lines.append(
+            f"- **Total Outliers Detected:** {report.total_outliers_detected}")
         lines.append("")
 
         lines.append("## Dataset Metadata")
@@ -32,7 +33,8 @@ class MarkdownExporter:
         if not report.column_summaries:
             lines.append("No columns were processed.")
         else:
-            lines.append("| Column | Method | Treatment | Outliers | Lower Bound | Upper Bound |")
+            lines.append(
+                "| Column | Method | Treatment | Outliers | Lower Bound | Upper Bound |")
             lines.append("| --- | --- | --- | --- | --- | --- |")
             for col, summary in report.column_summaries.items():
                 lb = f"{summary.lower_bound:.2f}" if summary.lower_bound is not None else "N/A"

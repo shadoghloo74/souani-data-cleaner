@@ -1,4 +1,4 @@
-﻿"""Detection result data model."""
+"""Detection result data model."""
 
 from dataclasses import dataclass, field, asdict
 from typing import Any, Dict, Optional

@@ -1,4 +1,4 @@
-﻿"""Models module initialization."""
+"""Models module initialization."""
 
 from outlier_engine.models.detection_result import DetectionResultModel
 from outlier_engine.models.column_summary import ColumnSummary

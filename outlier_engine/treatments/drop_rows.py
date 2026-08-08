@@ -1,4 +1,4 @@
-﻿"""Drop rows / NaN assignment outlier treatment strategy."""
+"""Drop rows / NaN assignment outlier treatment strategy."""
 
 import numpy as np
 import pandas as pd

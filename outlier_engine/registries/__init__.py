@@ -1,4 +1,4 @@
-﻿"""Registries module initialization and default strategy registration."""
+"""Registries module initialization and default strategy registration."""
 
 from outlier_engine.registries.detection_registry import DetectionRegistry
 from outlier_engine.registries.treatment_registry import TreatmentRegistry

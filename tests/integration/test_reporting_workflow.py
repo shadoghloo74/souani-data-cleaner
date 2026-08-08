@@ -1,4 +1,3 @@
-﻿import pytest
 import pandas as pd
 from outlier_engine.services import DetectionService, TreatmentService
 from outlier_engine.models import ExecutionContext, DetectionResultModel
@@ -14,21 +13,24 @@ def test_end_to_end_reporting_workflow():
 
     # 1. Run Detection & Treatment
     col = "feature1"
-    det_res = DetectionService.detect_column(df[col], col, method="iqr", multiplier=1.5)
-    treated_series = TreatmentService.treat_column(df[col], det_res, action="clip")
+    det_res = DetectionService.detect_column(
+        df[col], col, method="iqr", multiplier=1.5)
+    TreatmentService.treat_column(df[col], det_res, action="clip")
 
     # 2. Wrap Detection into Model
     model_det_res = DetectionResultModel(
         mask=det_res.mask,
         lower_bound=det_res.lower_bound,
         upper_bound=det_res.upper_bound,
-        method=det_res.method.value if hasattr(det_res.method, 'value') else str(det_res.method),
+        method=det_res.method.value if hasattr(
+            det_res.method, 'value') else str(det_res.method),
         outlier_count=det_res.outlier_count,
         statistics=det_res.statistics
     )
 
     # 3. Build Metadata & Execution Context
-    exec_meta = ExecutionMetadata(detector="iqr", treatment="clip", columns=[col])
+    exec_meta = ExecutionMetadata(
+        detector="iqr", treatment="clip", columns=[col])
     ctx = ExecutionContext(
         execution_id=exec_meta.execution_id,
         timestamp=exec_meta.timestamp,

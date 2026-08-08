@@ -1,4 +1,4 @@
-﻿"""Clip outlier treatment strategy."""
+"""Clip outlier treatment strategy."""
 
 import pandas as pd
 from outlier_engine.treatments.base import BaseTreatment

@@ -1,7 +1,7 @@
-﻿"""JSON Exporter module for Outlier Engine reports."""
+"""JSON Exporter module for Outlier Engine reports."""
 
 import json
-from typing import Dict, Any
+from typing import Dict
 from outlier_engine.models import (
     EngineReport,
     ExecutionContext,

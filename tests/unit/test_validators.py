@@ -1,4 +1,4 @@
-﻿import pytest
+import pytest
 import pandas as pd
 from outlier_engine.validators import DataFrameValidator, ColumnValidator, ParameterValidator
 from outlier_engine.exceptions import OutlierEngineError

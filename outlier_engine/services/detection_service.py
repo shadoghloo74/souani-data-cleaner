@@ -1,4 +1,4 @@
-﻿"""Detection service module."""
+"""Detection service module."""
 
 import pandas as pd
 from outlier_engine.registries import DetectionRegistry

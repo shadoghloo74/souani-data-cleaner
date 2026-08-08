@@ -1,4 +1,4 @@
-﻿"""Registry for managing and instantiating outlier detectors."""
+"""Registry for managing and instantiating outlier detectors."""
 
 from typing import Dict, Type
 from outlier_engine.detectors.base import BaseDetector

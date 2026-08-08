@@ -1,4 +1,4 @@
-﻿"""Execution context data model."""
+"""Execution context data model."""
 
 from dataclasses import dataclass, field, asdict
 from typing import Any, Dict

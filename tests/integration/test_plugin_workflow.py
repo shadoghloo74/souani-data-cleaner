@@ -1,4 +1,3 @@
-﻿import pytest
 import pandas as pd
 
 from outlier_engine.plugins import PluginManifest, BasePlugin, PluginLoader
@@ -6,7 +5,6 @@ from outlier_engine.detectors.base import BaseDetector
 from outlier_engine.treatments.base import BaseTreatment
 from outlier_engine.types import DetectionResult
 from outlier_engine.services import DetectionService, TreatmentService
-from outlier_engine.engine import OutlierEngine
 from outlier_engine.registries import DetectionRegistry, TreatmentRegistry
 
 
@@ -42,7 +40,8 @@ class ExternalCustomExtensionPlugin(BasePlugin):
         )
 
     def register(self) -> None:
-        PluginLoader.register_detector("custom_threshold", ThresholdDetectorPlugin)
+        PluginLoader.register_detector(
+            "custom_threshold", ThresholdDetectorPlugin)
         PluginLoader.register_treatment("custom_zero_out", ZeroTreatmentPlugin)
 
 
@@ -55,11 +54,13 @@ def test_external_plugin_end_to_end_workflow():
     df = pd.DataFrame({"val": [10.0, 50.0, 150.0, 200.0]})
 
     # 3. Test Detection Service with new plugin method
-    det_res = DetectionService.detect_column(df["val"], "val", method="custom_threshold", threshold=100.0)
+    det_res = DetectionService.detect_column(
+        df["val"], "val", method="custom_threshold", threshold=100.0)
     assert det_res.outlier_count == 2
 
     # 4. Test Treatment Service with new plugin action
-    treated_series = TreatmentService.treat_column(df["val"], det_res, action="custom_zero_out")
+    treated_series = TreatmentService.treat_column(
+        df["val"], det_res, action="custom_zero_out")
     assert treated_series.tolist() == [10.0, 50.0, 0.0, 0.0]
 
     # 5. Verify direct engine registry awareness

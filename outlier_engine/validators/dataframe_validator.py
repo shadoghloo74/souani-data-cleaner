@@ -1,4 +1,4 @@
-﻿"""DataFrame validator module for Outlier Engine."""
+"""DataFrame validator module for Outlier Engine."""
 
 import pandas as pd
 from outlier_engine.exceptions import OutlierEngineError

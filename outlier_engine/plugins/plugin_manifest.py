@@ -1,4 +1,4 @@
-﻿"""Plugin manifest data model."""
+"""Plugin manifest data model."""
 
 from dataclasses import dataclass, field, asdict
 from typing import List, Dict, Any

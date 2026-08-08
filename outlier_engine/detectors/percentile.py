@@ -1,4 +1,4 @@
-﻿"""Percentile-based outlier detector strategy."""
+"""Percentile-based outlier detector strategy."""
 
 import pandas as pd
 from outlier_engine.detectors.base import BaseDetector
@@ -21,7 +21,8 @@ class PercentileDetector(BaseDetector):
                 upper_bound=None,
                 method=DetectionMethod.PERCENTILE,
                 outlier_count=0,
-                statistics={"lower_quantile": lower_quantile, "upper_quantile": upper_quantile},
+                statistics={"lower_quantile": lower_quantile,
+                            "upper_quantile": upper_quantile},
             )
 
         lower_bound = float(clean_series.quantile(lower_quantile))

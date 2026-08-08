@@ -1,4 +1,4 @@
-﻿"""Median replacement outlier treatment strategy."""
+"""Median replacement outlier treatment strategy."""
 
 import pandas as pd
 from outlier_engine.treatments.base import BaseTreatment

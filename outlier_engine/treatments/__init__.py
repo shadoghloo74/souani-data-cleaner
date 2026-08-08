@@ -1,4 +1,4 @@
-﻿"""Treatments module initialization for Outlier Engine."""
+"""Treatments module initialization for Outlier Engine."""
 
 from outlier_engine.treatments.base import BaseTreatment
 from outlier_engine.treatments.clip import ClipTreatment

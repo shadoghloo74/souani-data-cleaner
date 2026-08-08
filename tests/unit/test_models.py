@@ -1,4 +1,4 @@
-﻿import pytest
+import pytest
 import pandas as pd
 from dataclasses import FrozenInstanceError
 
@@ -53,7 +53,8 @@ def test_column_summary_model():
 
 
 def test_execution_context_model():
-    context = ExecutionContext("exec-123", "2026-08-07T20:00:00", True, False, {"multiplier": 1.5})
+    context = ExecutionContext(
+        "exec-123", "2026-08-07T20:00:00", True, False, {"multiplier": 1.5})
     assert context.execution_id == "exec-123"
 
     with pytest.raises(FrozenInstanceError):
@@ -63,7 +64,8 @@ def test_execution_context_model():
 
 
 def test_metadata_report_model():
-    metadata = MetadataReport(100, 3, ["col1", "col2"], ["col1", "col2"], {"col1": 0})
+    metadata = MetadataReport(100, 3, ["col1", "col2"], [
+                              "col1", "col2"], {"col1": 0})
     assert metadata.total_rows == 100
 
     with pytest.raises(FrozenInstanceError):

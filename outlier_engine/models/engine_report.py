@@ -1,6 +1,6 @@
-﻿"""Engine report data model."""
+"""Engine report data model."""
 
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass
 from typing import Any, Dict
 from outlier_engine.models.execution_context import ExecutionContext
 from outlier_engine.models.column_summary import ColumnSummary

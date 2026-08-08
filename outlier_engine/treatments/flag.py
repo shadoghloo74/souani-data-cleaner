@@ -1,4 +1,4 @@
-﻿"""Flag outlier treatment strategy."""
+"""Flag outlier treatment strategy."""
 
 import pandas as pd
 from outlier_engine.treatments.base import BaseTreatment
